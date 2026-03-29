@@ -1,0 +1,7 @@
+// Local frontend config (public values only). This file is git-ignored.
+// Keep SUPABASE_SERVICE_ROLE_KEY in `.env` for `server.js` only.
+window.ECOREVISE_CONFIG = {
+  SUPABASE_URL: 'https://hvluboobnrcmhvdjvzpx.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2bHVib29ibnJjbWh2ZGp2enB4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2Nzg2MDUsImV4cCI6MjA5MDI1NDYwNX0.iNH7S7NjRFPR7laT9J9mqUsbbNbTvapT1iqNgyI3cKI',
+  API_BASE: 'http://localhost:3000'
+};

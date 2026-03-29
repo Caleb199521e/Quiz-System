@@ -1361,7 +1361,12 @@
     }
 
     // ---------- EVENT LISTENERS & DRAG/DROP ----------
+    let eventListenersInitialized = false;  // Guard to prevent duplicate initialization
+    
     function initEventListeners(){
+        if(eventListenersInitialized) return;  // Skip if already initialized
+        eventListenersInitialized = true;
+        
         // Auth mode tab switching
         const authTabs = document.querySelectorAll('.auth-tab');
         authTabs.forEach(tab => {
@@ -1512,12 +1517,10 @@
                             } else {
                                 switchRole(lastRole);
                             }
-                            initEventListeners();
                         } else {
                             // No session, initialize normally
                             await renderUserInfo();
                             await loadQuestionsFromStorage();
-                            initEventListeners();
                         }
                     }
                 });
@@ -1542,7 +1545,6 @@
                     adminDiv.classList.add('hidden');
                     renderStudentQuiz();
                 }
-                initEventListeners();
             }
         } else {
             await renderUserInfo();

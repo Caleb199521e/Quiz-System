@@ -8,7 +8,7 @@
 CREATE TABLE IF NOT EXISTS public.courses (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL UNIQUE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+  inserted_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_courses_name ON public.courses(name);
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS public.questions (
   text TEXT NOT NULL,
   options JSONB NOT NULL,
   correct_letter TEXT NOT NULL CHECK (correct_letter IN ('A', 'B', 'C', 'D')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  inserted_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   FOREIGN KEY (course_name) REFERENCES public.courses(name) ON DELETE CASCADE
 );
 
@@ -44,12 +44,12 @@ CREATE TABLE IF NOT EXISTS public.quiz_sessions (
   correct_answers INTEGER NOT NULL,
   duration_seconds INTEGER,
   answered_questions JSONB,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+  inserted_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_quiz_sessions_user_email ON public.quiz_sessions(user_email);
 CREATE INDEX IF NOT EXISTS idx_quiz_sessions_course ON public.quiz_sessions(course_name);
-CREATE INDEX IF NOT EXISTS idx_quiz_sessions_created ON public.quiz_sessions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_quiz_sessions_inserted ON public.quiz_sessions(inserted_at DESC);
 
 -- ============================================
 -- 4. STUDENT PROGRESS TABLE (Aggregated Stats)

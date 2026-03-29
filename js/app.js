@@ -1565,6 +1565,10 @@
         }
     })();
     
+    // Initialize event listeners on page load (before auth state is checked)
+    // This ensures tab switching works immediately
+    initEventListeners();
+    
     // Check for email confirmation messages from auth callback
     setTimeout(() => {
         if(sessionStorage.getItem('showEmailConfirmationMessage')) {

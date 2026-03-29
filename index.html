@@ -24,7 +24,8 @@
             .then(script => {
                 // Execute the config script
                 eval(script);
-                console.log('[EcoRevise] Config loaded from server:', window.ECOREVISE_CONFIG);
+                // Log only that config was loaded (don't expose credentials)
+                console.log('[EcoRevise] Config loaded from server');
             })
             .catch(err => {
                 console.warn('[EcoRevise] Failed to load dynamic config, trying static file:', err);

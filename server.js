@@ -37,13 +37,14 @@ const supabase = createClient(SUPABASE_URL || '', SUPABASE_KEY || '');
 // Dynamic config endpoint for frontend (injects environment variables)
 app.get('/api/config', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');
+  const config = {
+    SUPABASE_URL: SUPABASE_URL || '',
+    SUPABASE_ANON_KEY: SUPABASE_ANON_KEY || '',
+    API_BASE: req.protocol + '://' + req.get('host')
+  };
+  console.log('[CONFIG] Serving dynamic config with SUPABASE_URL:', !!config.SUPABASE_URL, 'SUPABASE_ANON_KEY:', !!config.SUPABASE_ANON_KEY);
   res.send(`
-    // Dynamic config injected from server environment
-    window.ECOREVISE_CONFIG = {
-      SUPABASE_URL: ${JSON.stringify(SUPABASE_URL || '')},
-      SUPABASE_ANON_KEY: ${JSON.stringify(SUPABASE_ANON_KEY || '')},
-      API_BASE: window.location.protocol + '//' + window.location.host
-    };
+    window.ECOREVISE_CONFIG = ${JSON.stringify(config)};
   `);
 });
 

@@ -1,7 +1,10 @@
 {
   "name": "ecorevise-quiz",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Client-side quiz app - testable utility functions",
+  "engines": {
+    "node": "18.x"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",

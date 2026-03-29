@@ -4,13 +4,13 @@
     {
       "src": "server.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
+    {
+      "src": "/js/(.*)",
+      "dest": "/js/$1"
+    },
     {
       "src": "/api/(.*)",
       "dest": "server.js"
@@ -18,6 +18,10 @@
     {
       "src": "/auth/(.*)",
       "dest": "server.js"
+    },
+    {
+      "src": "/(.*\\.html)$",
+      "dest": "/$1"
     },
     {
       "src": "/.*",

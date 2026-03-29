@@ -37,40 +37,43 @@
     }
 
     function persistQuestions() {
-        try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(questionsBank)); } catch(e){ console.warn('Could not persist questions', e); }
+        // NOTE: Questions are fetched from backend API as needed
+        // No caching required since API provides fresh data
+        console.log('[INFO] Questions sourced from backend API');
     }
 
     function persistCourses(){
-        try{ localStorage.setItem(COURSES_STORAGE_KEY, JSON.stringify(coursesBank)); } catch(e){ console.warn('Could not persist courses', e); }
+        // NOTE: Courses are fetched from backend API as needed
+        // No caching required since API provides fresh data
+        console.log('[INFO] Courses sourced from backend API');
     }
 
     const QUIZ_SESSION_KEY = 'ecorevise_quiz_session_v1';
     
-    // Save quiz progress to session storage so student can resume if page refreshes
+    // Save quiz progress locally (for same-session resume)
+    // Final results auto-saved via trackQuizSession() when quiz completes
     function saveQuizProgress() {
+        if(!quizActive || !selectedCourse) return;
         try {
-            const quizSession = {
-                quizActive,
-                currentQIndex,
-                studentAnswers,
-                quizQuestions: quizQuestions.map(q => ({ 
-                    text: q.text, 
-                    options: q.options, 
-                    correctLetter: q.correctLetter, 
-                    courseName: q.courseName, 
-                    topic: q.topic 
-                })),
-                selectedCourse,
-                selectedTopic,
-                quizStartTime: window.quizStartTime
+            const progressData = {
+                quizActive: true,
+                quizQuestions: quizQuestions,
+                studentAnswers: studentAnswers,
+                currentQIndex: currentQIndex,
+                selectedCourse: selectedCourse,
+                selectedTopic: selectedTopic,
+                quizStartTime: window.quizStartTime || Date.now(),
+                savedAt: Date.now()
             };
-            sessionStorage.setItem(QUIZ_SESSION_KEY, JSON.stringify(quizSession));
+            sessionStorage.setItem(QUIZ_SESSION_KEY, JSON.stringify(progressData));
+            console.log(`[SAVED] Quiz progress: Q${currentQIndex + 1}/${quizQuestions.length}`);
         } catch(e) {
             console.warn('Could not save quiz progress', e);
         }
     }
     
-    // Restore quiz progress from session storage if available
+    // Restore quiz progress from previous session (same device)
+    // Full cross-device support via backend when quiz completes
     function restoreQuizProgress() {
         try {
             const saved = sessionStorage.getItem(QUIZ_SESSION_KEY);
@@ -84,6 +87,7 @@
                     selectedTopic = session.selectedTopic;
                     window.quizStartTime = session.quizStartTime || Date.now();
                     quizActive = true;
+                    console.log(`[RESTORED] Quiz resumed: Q${currentQIndex + 1}/${quizQuestions.length} from ${new Date(session.savedAt).toLocaleTimeString()}`);
                     return true;
                 }
             }
@@ -93,10 +97,11 @@
         return false;
     }
     
-    // Clear saved quiz progress
+    // Clear saved quiz progress (called when quiz completes)
     function clearQuizProgress() {
         try {
             sessionStorage.removeItem(QUIZ_SESSION_KEY);
+            console.log('[CLEARED] Quiz session cleared');
         } catch(e) {
             console.warn('Could not clear quiz progress', e);
         }
@@ -165,10 +170,8 @@
                 }
             } catch(e){ console.warn('Error fetching courses from API', e); }
         }
-        const stored = localStorage.getItem(COURSES_STORAGE_KEY);
-        if(stored){
-            try{ coursesBank = JSON.parse(stored); if(!Array.isArray(coursesBank)) coursesBank = []; } catch(e){ coursesBank = []; }
-        }
+        // DISABLED: localStorage fallback - using backend API only
+        console.log('[TEST MODE] localStorage lookup disabled for courses - using backend API');
     }
 
     async function createCourse(courseName, options = {}){
@@ -423,20 +426,18 @@
                     updateStaffListUI();
                     return;
                 } else {
-                    console.warn('Failed to fetch from API, falling back to localStorage');
+                    console.error('[TEST MODE] Failed to fetch from API - backend not responding!');
+                    questionsBank = [];
+                    return;
                 }
-            } catch(e){ console.warn('Error fetching questions from API', e); }
-        }
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if(stored) {
-            try{ questionsBank = JSON.parse(stored); if(!Array.isArray(questionsBank)) questionsBank = []; } catch(e){ questionsBank = []; }
+            } catch(e){ 
+                console.error('[TEST MODE] Error fetching questions from API:', e);
+                questionsBank = [];
+                return;
+            }
         } else {
-            // Add some demo questions for starter
-            questionsBank = [
-                { courseName: "Biology", text: "What is the powerhouse of the cell?", options: ["Nucleus", "Mitochondria", "Ribosome", "Chloroplast"], correctLetter: "B" },
-                { courseName: "Environmental Science", text: "Which of the following is a greenhouse gas?", options: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Hydrogen"], correctLetter: "C" }
-            ];
-            persistQuestions();
+            console.error('[TEST MODE] API_BASE not configured!');
+            questionsBank = [];
         }
         questionsBank = questionsBank.map(q => ({ ...q, courseName: normalizeCourseName(q.courseName) }));
         for(const q of questionsBank){ ensureCourseInLocalBank(q.courseName); }
@@ -1497,7 +1498,7 @@
                         sessionChecked = true;
                         if(session?.user) {
                             // User is authenticated, restore their last role
-                            const lastRole = localStorage.getItem('ecorevise_last_role') || 'student';
+                            const lastRole = 'student'; // DISABLED: localStorage - using default role
                             await renderUserInfo();
                             await loadQuestionsFromStorage();
                             
@@ -1613,7 +1614,7 @@
                 return showAuthToast('Sign-in succeeded but session not established. Try again.', 'red');
             }
             showAuthToast('Signed in successfully.', 'green');
-            localStorage.setItem('ecorevise_last_role', role);
+            // DISABLED: localStorage for last role - using backend only
             await renderUserInfo();
             switchRole(role);
         } catch(e){ 

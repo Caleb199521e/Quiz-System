@@ -59,20 +59,18 @@ npm test
 
 ## Deployment
 
-### Deploy to Heroku
+### Deploy to Vercel (Recommended)
 
-**See [HEROKU_DEPLOYMENT.md](HEROKU_DEPLOYMENT.md) for complete instructions**
+**See [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md) for complete instructions**
 
 Quick summary:
-```bash
-heroku login
-heroku create your-app-name
-heroku config:set SUPABASE_URL=<your-url>
-heroku config:set SUPABASE_SERVICE_ROLE_KEY=<your-key>
-heroku config:set SUPABASE_ANON_KEY=<your-anon-key>
-git push heroku main
-heroku open
-```
+1. Push code to GitHub
+2. Go to [vercel.com](https://vercel.com)
+3. Import your repository
+4. Add environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY)
+5. Click Deploy ✅
+
+Your app will be live in minutes at `https://your-project.vercel.app`
 
 ## Project Structure
 
@@ -223,6 +221,6 @@ Proprietary - All rights reserved
 ## Support
 
 For issues or questions, check:
-- [HEROKU_DEPLOYMENT.md](HEROKU_DEPLOYMENT.md) - Deployment help
+- [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md) - Deployment help
 - [PROJECT_STATUS.md](PROJECT_STATUS.md) - Feature status
 - [QUICK_REFERENCE.md](QUICK_REFERENCE.md) - Common tasks

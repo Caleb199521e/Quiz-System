@@ -1626,6 +1626,8 @@
     async function handleSignUp(){
         const email = document.getElementById('authEmail')?.value?.trim();
         const password = document.getElementById('authPassword')?.value?.trim();
+        const signupRole = document.getElementById('signupRoleSelect')?.value || 'student';
+        
         if(!email || !password) return showToast('Enter email and password', 'red');
         
         const client = getSupabaseClient();
@@ -1640,7 +1642,7 @@
                 const res = await fetch(`${API_BASE}/api/auth/signup`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ email, password, role: signupRole })
                 });
                 const json = await res.json();
                 if(!res.ok){
@@ -1649,6 +1651,7 @@
                 // Clear form
                 document.getElementById('authEmail').value = '';
                 document.getElementById('authPassword').value = '';
+                document.getElementById('signupRoleSelect').value = 'student';
                 showAuthToast('Account created successfully! Your email is ready to use. Now sign in.', 'green');
             } else {
                 // Fallback to standard Supabase signup (requires email verification)

@@ -255,7 +255,7 @@ app.get('/api/me', verifyAuth, async (req, res) => {
 // POST /api/auth/signup -> signup with auto-confirmed email (no verification required)
 app.post('/api/auth/signup', async (req, res) => {
   try{
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
     
     if(!email || !password){
       return res.status(400).json({ error: 'Email and password are required' });
@@ -283,12 +283,95 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(400).json({ error: error.message || 'Signup failed' });
     }
     
+    const userId = data.user.id;
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // Create user profile based on role
+    if(role === 'staff'){
+      const { error: staffError } = await supabase.from('staff').insert([{
+        user_id: userId,
+        email: normalizedEmail
+      }]);
+      if(staffError) console.warn('Could not create staff profile:', staffError.message);
+    } else if(role === 'student'){
+      const { error: studentError } = await supabase.from('students').insert([{
+        user_id: userId,
+        email: normalizedEmail
+      }]);
+      if(studentError) console.warn('Could not create student profile:', studentError.message);
+    }
+    
     return res.status(201).json({ 
       message: 'Account created successfully (email auto-confirmed)',
-      user: data.user 
+      user: data.user,
+      role: role || 'user'
     });
   } catch(err){
     return res.status(500).json({ error: err.message || 'Signup error' });
+  }
+});
+
+// GET /api/profile -> get current user's profile (staff or student)
+app.get('/api/profile', verifyAuth, async (req, res) => {
+  try{
+    const userId = req.user.id;
+    const email = req.user.email;
+    
+    // Check if staff
+    const { data: staffData, error: staffError } = await supabase.from('staff').select('*').eq('user_id', userId).limit(1);
+    if(staffData && staffData.length > 0){
+      return res.json({ role: 'staff', profile: staffData[0] });
+    }
+    
+    // Check if student
+    const { data: studentData, error: studentError } = await supabase.from('students').select('*').eq('user_id', userId).limit(1);
+    if(studentData && studentData.length > 0){
+      return res.json({ role: 'student', profile: studentData[0] });
+    }
+    
+    return res.status(404).json({ error: 'Profile not found' });
+  } catch(err){
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/staff/profile -> update staff profile
+app.put('/api/staff/profile', verifyAuth, async (req, res) => {
+  try{
+    const userId = req.user.id;
+    const { full_name, department, phone, bio } = req.body;
+    
+    const { data, error } = await supabase.from('staff')
+      .update({ full_name, department, phone, bio, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .select();
+    
+    if(error) return res.status(500).json({ error: error.message });
+    if(!data || data.length === 0) return res.status(404).json({ error: 'Staff profile not found' });
+    
+    return res.json({ message: 'Profile updated', profile: data[0] });
+  } catch(err){
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/students/profile -> update student profile
+app.put('/api/students/profile', verifyAuth, async (req, res) => {
+  try{
+    const userId = req.user.id;
+    const { full_name, student_id, grade_level, school, phone } = req.body;
+    
+    const { data, error } = await supabase.from('students')
+      .update({ full_name, student_id, grade_level, school, phone, updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .select();
+    
+    if(error) return res.status(500).json({ error: error.message });
+    if(!data || data.length === 0) return res.status(404).json({ error: 'Student profile not found' });
+    
+    return res.json({ message: 'Profile updated', profile: data[0] });
+  } catch(err){
+    return res.status(500).json({ error: err.message });
   }
 });
 

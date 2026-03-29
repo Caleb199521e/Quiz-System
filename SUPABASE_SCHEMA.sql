@@ -52,7 +52,62 @@ CREATE INDEX IF NOT EXISTS idx_quiz_sessions_course ON public.quiz_sessions(cour
 CREATE INDEX IF NOT EXISTS idx_quiz_sessions_inserted ON public.quiz_sessions(inserted_at DESC);
 
 -- ============================================
--- 4. STUDENT PROGRESS TABLE (Aggregated Stats)
+-- 4. STAFF TABLE (Profile Info for Instructors)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.staff (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL UNIQUE,
+  email TEXT NOT NULL UNIQUE,
+  full_name TEXT,
+  department TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_staff_user_id ON public.staff(user_id);
+CREATE INDEX IF NOT EXISTS idx_staff_email ON public.staff(email);
+
+-- ============================================
+-- 5. STUDENTS TABLE (Profile Info for Learners)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.students (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL UNIQUE,
+  email TEXT NOT NULL UNIQUE,
+  full_name TEXT,
+  student_id TEXT,
+  grade_level TEXT,
+  enrollment_date TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_students_user_id ON public.students(user_id);
+CREATE INDEX IF NOT EXISTS idx_students_email ON public.students(email);
+CREATE INDEX IF NOT EXISTS idx_students_student_id ON public.students(student_id);
+
+-- ============================================
+-- 6. QUIZ SESSIONS TABLE (Analytics)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.quiz_sessions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID,
+  user_email TEXT NOT NULL,
+  course_name TEXT NOT NULL DEFAULT 'General',
+  score NUMERIC(5, 2) NOT NULL,
+  total_questions INTEGER NOT NULL,
+  correct_answers INTEGER NOT NULL,
+  duration_seconds INTEGER,
+  answered_questions JSONB,
+  inserted_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_quiz_sessions_user_email ON public.quiz_sessions(user_email);
+CREATE INDEX IF NOT EXISTS idx_quiz_sessions_course ON public.quiz_sessions(course_name);
+CREATE INDEX IF NOT EXISTS idx_quiz_sessions_inserted ON public.quiz_sessions(inserted_at DESC);
+
+-- ============================================
+-- 7. STUDENT PROGRESS TABLE (Aggregated Stats)
 -- ============================================
 CREATE TABLE IF NOT EXISTS public.student_progress (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

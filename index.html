@@ -501,7 +501,13 @@
                     <!-- Sign Up Mode -->
                     <div id="authModeSignUp" class="auth-mode-container hidden">
                         <p class="mode-label text-center"><span class="material-symbols-outlined mi">info</span>Create your new account</p>
-                        <button id="signUpBtn" class="w-full py-2.5 sm:py-3 px-3 sm:px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-lg sm:rounded-xl shadow-md transition-smooth"><span class="material-symbols-outlined mi">person_add</span>Create Account</button>
+                        <div class="space-y-2 sm:space-y-3 mt-3">
+                            <select id="signupRoleSelect" class="w-full p-2 sm:p-3 border border-gray-200 rounded-lg sm:rounded-xl text-sm sm:text-base">
+                                <option value="student">📚 I am a Student</option>
+                                <option value="staff">👨‍🏫 I am an Instructor/Staff</option>
+                            </select>
+                            <button id="signUpBtn" class="w-full py-2.5 sm:py-3 px-3 sm:px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-lg sm:rounded-xl shadow-md transition-smooth"><span class="material-symbols-outlined mi">person_add</span>Create Account</button>
+                        </div>
                     </div>
                     
                     <div class="mt-3 text-center">

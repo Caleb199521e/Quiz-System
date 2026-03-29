@@ -9,6 +9,14 @@ app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(__dirname)); // Serve static files (HTML, CSS, JS)
 
+// Explicitly handle static file extensions to bypass catch-all
+app.get(/\.(js|css|html|json|png|jpg|jpeg|gif|svg|ico|woff|woff2)$/, (req, res) => {
+  const filePath = path.join(__dirname, req.path);
+  res.sendFile(filePath, (err) => {
+    if (err) res.status(404).send('Not found');
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
@@ -502,8 +510,9 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'deepseek_html_20260327_1d2e5d.html'));
 });
 
-// Catch-all for SPA routing (when direct path is not an API or static file)
-app.get('*', (req, res) => {
+// Catch-all for SPA routing - MUST be last after static files
+// Note: express.static() middleware above will serve /js/*, /*.html, etc. before this route
+app.use('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'deepseek_html_20260327_1d2e5d.html'));
 });
 

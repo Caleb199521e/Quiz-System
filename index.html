@@ -16,7 +16,16 @@
         }
     </script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0" />
-    <script src="js/config.local.js"></script>
+    <!-- Load dynamic config from server (uses environment variables on Vercel) or fallback to static file -->
+    <script src="/api/config"></script>
+    <script>
+        // Fallback: if dynamic config didn't load, try to load static file (for offline/development)
+        if (!window.ECOREVISE_CONFIG) {
+            var script = document.createElement('script');
+            script.src = 'js/config.local.js';
+            document.head.appendChild(script);
+        }
+    </script>
     <script type="module">
         // Load Supabase client for browser via ESM and expose createClient factory
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';

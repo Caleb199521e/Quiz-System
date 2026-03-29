@@ -25,6 +25,7 @@ app.use((req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 
 if(!SUPABASE_URL || !SUPABASE_KEY){
@@ -32,6 +33,19 @@ if(!SUPABASE_URL || !SUPABASE_KEY){
 }
 
 const supabase = createClient(SUPABASE_URL || '', SUPABASE_KEY || '');
+
+// Dynamic config endpoint for frontend (injects environment variables)
+app.get('/api/config', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(`
+    // Dynamic config injected from server environment
+    window.ECOREVISE_CONFIG = {
+      SUPABASE_URL: ${JSON.stringify(SUPABASE_URL || '')},
+      SUPABASE_ANON_KEY: ${JSON.stringify(SUPABASE_ANON_KEY || '')},
+      API_BASE: window.location.protocol + '//' + window.location.host
+    };
+  `);
+});
 
 async function ensureCourseExists(courseName){
   const normalized = ((courseName || 'General').toString().trim() || 'General').replace(/\s+/g, ' ');

@@ -1,0 +1,19 @@
+# Node modules
+node_modules/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+js/config.local.js
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE/system
+.vscode/
+.DS_Store
+Thumbs.db

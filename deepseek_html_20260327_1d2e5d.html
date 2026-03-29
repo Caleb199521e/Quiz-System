@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>EcoRevise | Academic Quiz System</title>
+    <!-- Tailwind CSS v3 via CDN (acceptable for dev, use PostCSS CLI for production) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Suppress Tailwind CDN development warning
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {};
+        }
+    </script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0" />
+    <script src="js/config.local.js"></script>
+    <script type="module">
+        // Load Supabase client for browser via ESM and expose createClient factory
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        window.createSupabaseClient = createClient;
+        const cfg = window.ECOREVISE_CONFIG || {};
+        // Public client config only (never put service-role key in frontend)
+        window.SUPABASE_URL = cfg.SUPABASE_URL || '';
+        window.SUPABASE_ANON_KEY = cfg.SUPABASE_ANON_KEY || '';
+        // API_BASE is the server base URL, for example: http://localhost:3000
+        window.API_BASE = cfg.API_BASE || '';
+    </script>
+    <!-- Custom green theme override (keeping academic fresh) with responsive enhancements -->
+    <style>
+        /* Root font sizing for responsive typography */
+        html {
+            font-size: 14px;
+        }
+        @media (min-width: 640px) {
+            html {
+                font-size: 15px;
+            }
+        }
+        @media (min-width: 1024px) {
+            html {
+                font-size: 16px;
+            }
+        }
+
+        *:focus-visible {
+            outline: 2px solid #2e7d32;
+            outline-offset: 2px;
+            border-radius: 0.25rem;
+        }
+
+        body {
+            background: linear-gradient(145deg, #e9f7e1 0%, #d4e9c5 100%);
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Responsive padding for app containers */
+        @media (max-width: 640px) {
+            body {
+                padding: 0.5rem;
+            }
+            .max-w-6xl {
+                padding: 0 0.5rem;
+            }
+        }
+
+        /* custom card soft shadow */
+        .card-shadow {
+            box-shadow: 0 12px 28px -8px rgba(0, 32, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+        }
+
+        .transition-smooth {
+            transition: all 0.2s ease;
+        }
+
+        .option-hover:hover {
+            background-color: #f1f8e9;
+            border-color: #81c784;
+            transform: scale(1.01);
+        }
+
+        .option-hover:active {
+            transform: scale(0.99);
+        }
+
+        .drag-area-active {
+            background-color: #e8f5e9;
+            border-color: #2e7d32;
+            border-width: 2px;
+        }
+
+        /* custom scrollbar for question list */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #e9ecef;
+            border-radius: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #81c784;
+            border-radius: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #66bb6a;
+        }
+
+        .mi {
+            font-family: 'Material Symbols Outlined';
+            font-size: 1.1em;
+            line-height: 1;
+            vertical-align: text-bottom;
+            margin-right: 0.35rem;
+        }
+
+        /* Ensure minimum touch target size (44x44px) */
+        button, input[type="button"], input[type="submit"], a[role="button"] {
+            min-height: 44px;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        /* Input field responsive sizing */
+        input, textarea, select {
+            -webkit-appearance: none;
+            appearance: none;
+            border-radius: 0.75rem;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="number"],
+        textarea,
+        select {
+            font-size: 16px; /* Prevents zoom on iOS */
+            padding: 0.75rem;
+        }
+
+        /* Responsive table styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        @media (max-width: 640px) {
+            table thead {
+                display: none;
+            }
+            table tr {
+                display: block;
+                margin-bottom: 1rem;
+                border: 1px solid #e5e7eb;
+                border-radius: 0.5rem;
+                overflow: hidden;
+            }
+            table td {
+                display: block;
+                padding: 0.5rem !important;
+                text-align: right;
+                border-bottom: 1px solid #e5e7eb;
+            }
+            table td:before {
+                content: attr(data-label);
+                float: left;
+                font-weight: 600;
+                color: #4b5563;
+                margin-right: 0.5rem;
+            }
+            table td:last-child {
+                border-bottom: none;
+            }
+        }
+
+        /* Responsive navigation */
+        @media (max-width: 768px) {
+            .flex-wrap {
+                gap: 0.75rem;
+            }
+        }
+
+        /* Responsive grid adjustments */
+        .responsive-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        @media (min-width: 768px) {
+            .responsive-grid-2 {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (min-width: 1024px) {
+            .responsive-grid-2 {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Improvements for cards on mobile */
+        @media (max-width: 640px) {
+            .card-shadow {
+                box-shadow: 0 4px 12px -4px rgba(0, 32, 0, 0.08);
+            }
+        }
+
+        /* Prevent text overflow on small screens */
+        .truncate-responsive {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        @media (max-width: 640px) {
+            .multi-line-responsive {
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+        }
+
+        /* Safe area for notched devices */
+        @supports(padding: max(0px)) {
+            body {
+                padding-left: max(0.5rem, env(safe-area-inset-left));
+                padding-right: max(0.5rem, env(safe-area-inset-right));
+                padding-top: max(0.5rem, env(safe-area-inset-top));
+                padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+            }
+        }
+
+        /* Responsive dialog/overlay improvements */
+        .modal-responsive {
+            max-width: 90vw;
+            max-height: 90vh;
+        }
+
+        /* Question card text wrapping improvements */
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Ensure question text breaks properly */
+        .break-words {
+            word-break: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+        }
+
+        /* Question card flex improvements */
+        .question-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        @media (min-width: 640px) {
+            .question-card {
+                flex-direction: row;
+            }
+        }
+
+        .question-card-content {
+            flex: 1;
+            min-width: 0; /* Important for flex children to respect overflow */
+        }
+
+        .question-card-delete {
+            flex-shrink: 0;
+            align-self: flex-start;
+        }
+
+        /* Auth Mode Tabs */
+        .auth-tab {
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border: none;
+            background: #f3f4f6;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+            position: relative;
+        }
+
+        .auth-tab.active {
+            background: #fff;
+            color: #2d5016;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .auth-tab:hover:not(.active) {
+            background: #e5e7eb;
+        }
+
+        .auth-mode-container {
+            display: none;
+        }
+
+        .auth-mode-container.active {
+            display: block;
+        }
+
+        .mode-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* Enhanced Toast Notification Styles */
+        #toastContainer {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            pointer-events: none;
+            max-width: 500px;
+        }
+        @media (max-width: 640px) {
+            #toastContainer {
+                bottom: 0.5rem;
+                right: 0.5rem;
+                left: 0.5rem;
+                max-width: none;
+            }
+        }
+        .toast {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(8px);
+            animation: slideInUp 0.3s ease-out;
+            pointer-events: auto;
+            word-wrap: break-word;
+            font-size: 0.9375rem;
+            line-height: 1.4;
+        }
+        @media (max-width: 640px) {
+            .toast {
+                font-size: 0.875rem;
+                padding: 0.75rem 0.875rem;
+            }
+        }
+        .toast.success {
+            background-color: rgba(34, 197, 94, 0.95);
+            color: white;
+            border: 1px solid rgba(187, 247, 208, 0.3);
+        }
+        .toast.error {
+            background-color: rgba(239, 68, 68, 0.95);
+            color: white;
+            border: 1px solid rgba(254, 202, 202, 0.3);
+        }
+        .toast.warning {
+            background-color: rgba(245, 158, 11, 0.95);
+            color: white;
+            border: 1px solid rgba(254, 243, 199, 0.3);
+        }
+        .toast.info {
+            background-color: rgba(59, 130, 246, 0.95);
+            color: white;
+            border: 1px solid rgba(191, 219, 254, 0.3);
+        }
+        .toast.amber {
+            background-color: rgba(217, 119, 6, 0.95);
+            color: white;
+            border: 1px solid rgba(254, 243, 199, 0.3);
+        }
+        .toast-icon {
+            flex-shrink: 0;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.5rem;
+        }
+        .toast-content {
+            flex: 1;
+        }
+        .toast-close {
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            color: inherit;
+            font-size: 1.125rem;
+            cursor: pointer;
+            padding: 0;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+        .toast-close:hover {
+            opacity: 1;
+        }
+        @keyframes slideInUp {
+            from {
+                transform: translateY(120%) translateX(0);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOutDown {
+            from {
+                transform: translateY(0) translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateY(120%) translateX(0);
+                opacity: 0;
+            }
+        }
+        .toast.removing {
+            animation: slideOutDown 0.3s ease-in forwards;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased">
+
+    <div id="app" class="w-full min-h-screen max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-2 sm:py-4 lg:py-6">
+        <!-- ROLE SELECTION / LOGIN CARD (initial view) -->
+        <div id="roleSelectionContainer" class="flex justify-center items-center min-h-screen sm:min-h-[80vh]">
+            <div class="bg-white rounded-2xl card-shadow p-4 sm:p-6 md:p-8 w-full max-w-md mx-auto text-center">
+                <div class="mb-4 sm:mb-6">
+                    <div class="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-green-100 rounded-full mb-3 sm:mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 sm:h-8 sm:w-8 text-green-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-gray-800">EcoRevise</h2>
+                    <p class="text-xs sm:text-base text-gray-500 mt-1 sm:mt-2">Exam revision made simple</p>
+                </div>
+                
+                <!-- Auth Mode Tabs -->
+                <div class="flex gap-0 mb-4 sm:mb-6 rounded-lg sm:rounded-xl overflow-hidden border border-gray-200">
+                    <button class="auth-tab active" data-mode="signin">
+                        <span class="material-symbols-outlined mi">login</span>
+                        <span class="hidden xs:inline">Sign In</span>
+                        <span class="xs:hidden">Sign In</span>
+                    </button>
+                    <button class="auth-tab" data-mode="signup">
+                        <span class="material-symbols-outlined mi">person_add</span>
+                        <span class="hidden xs:inline">Create Account</span>
+                        <span class="xs:hidden">Sign Up</span>
+                    </button>
+                </div>
+                
+                <div class="space-y-3 sm:space-y-4 mt-4 sm:mt-6">
+                    <div class="grid gap-2 sm:gap-3">
+                        <input id="authEmail" type="email" placeholder="Email" class="w-full p-2 sm:p-3 border border-gray-200 rounded-lg sm:rounded-xl text-sm sm:text-base" autocomplete="email">
+                        <input id="authPassword" type="password" placeholder="Password" class="w-full p-2 sm:p-3 border border-gray-200 rounded-lg sm:rounded-xl text-sm sm:text-base" autocomplete="current-password">
+                    </div>
+                    <div id="authFeedback" class="text-xs sm:text-sm p-2 rounded-lg hidden"></div>
+                    
+                    <!-- Sign In Mode -->
+                    <div id="authModeSignIn" class="auth-mode-container active space-y-3">
+                        <p class="mode-label text-center"><span class="material-symbols-outlined mi">info</span>Select your role to sign in</p>
+                        <div class="grid grid-cols-1 xs:grid-cols-2 gap-2 sm:gap-3 mt-2">
+                            <button id="signInStaffBtn" class="w-full py-2.5 sm:py-3 px-3 sm:px-4 bg-green-700 hover:bg-green-800 text-white font-semibold text-xs sm:text-sm rounded-lg sm:rounded-xl shadow-md transition-smooth"><span class="material-symbols-outlined mi">admin_panel_settings</span><span class="hidden xs:inline">Staff</span><span class="xs:hidden">Staff</span></button>
+                            <button id="signInStudentBtn" class="w-full py-2.5 sm:py-3 px-3 sm:px-4 bg-white border-2 border-green-600 text-green-800 hover:bg-green-50 font-semibold text-xs sm:text-sm rounded-lg sm:rounded-xl transition-smooth"><span class="material-symbols-outlined mi">school</span><span class="hidden xs:inline">Student</span><span class="xs:hidden">Student</span></button>
+                        </div>
+                    </div>
+                    
+                    <!-- Sign Up Mode -->
+                    <div id="authModeSignUp" class="auth-mode-container hidden">
+                        <p class="mode-label text-center"><span class="material-symbols-outlined mi">info</span>Create your new account</p>
+                        <button id="signUpBtn" class="w-full py-2.5 sm:py-3 px-3 sm:px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-lg sm:rounded-xl shadow-md transition-smooth"><span class="material-symbols-outlined mi">person_add</span>Create Account</button>
+                    </div>
+                    
+                    <div class="mt-3 text-center">
+                        <button id="guestContinueBtn" class="text-xs sm:text-sm text-gray-600 underline hover:text-gray-800"><span class="material-symbols-outlined mi">arrow_forward</span>Continue as guest (no auth)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STAFF DASHBOARD (hidden initially) -->
+        <div id="staffDashboard" class="hidden">
+            <!-- top navigation -->
+            <div class="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl card-shadow p-2 sm:p-3 md:p-4 flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-2 sm:gap-3 mb-6 sm:mb-8">
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <span class="text-lg sm:text-2xl font-bold text-green-800 truncate"><span class="material-symbols-outlined mi">menu_book</span>Staff Panel</span>
+                    <span class="text-xs sm:text-sm bg-green-100 text-green-700 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full whitespace-nowrap">Manager</span>
+                </div>
+                <div class="flex gap-1 sm:gap-2 md:gap-3 w-full sm:w-auto flex-wrap">
+                    <button id="staffToAnalyticsBtn" class="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-purple-700 bg-purple-50 rounded-lg sm:rounded-xl hover:bg-purple-100 transition whitespace-nowrap"><span class="material-symbols-outlined mi">analytics</span><span class="hidden sm:inline">Analytics</span></button>
+                    <button id="staffToStudentQuizBtn" class="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-green-700 bg-green-50 rounded-lg sm:rounded-xl hover:bg-green-100 transition whitespace-nowrap"><span class="material-symbols-outlined mi">target</span><span class="hidden sm:inline">Quiz</span></button>
+                    <button id="staffLogoutBtn" class="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-gray-200 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-300 transition whitespace-nowrap"><span class="material-symbols-outlined mi">logout</span><span class="hidden sm:inline">Logout</span></button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
+                <!-- LEFT COLUMN: Add Single + Batch Upload -->
+                <div class="space-y-4 sm:space-y-6">
+                    <!-- Single Question Card -->
+                    <div class="bg-white rounded-xl sm:rounded-2xl card-shadow p-4 sm:p-6">
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-800 border-l-4 border-green-600 pl-2 sm:pl-3 mb-3 sm:mb-5 truncate"><span class="material-symbols-outlined mi">add_circle</span>Add Question</h3>
+                        <div class="space-y-2 sm:space-y-4">
+                            <input type="text" id="singleCourseName" placeholder="Course name (e.g. Biology 101)" class="w-full p-2 sm:p-3 border border-gray-200 rounded-lg sm:rounded-xl focus:border-green-400 focus:ring-1 focus:ring-green-300 text-sm">
+                            <div class="space-y-1">
+                                <p class="text-xs text-gray-500">Quick course select (hold and close icon to delete)</p>
+                                <div id="courseChipList" class="flex flex-wrap gap-1 sm:gap-2"></div>
+                            </div>
+                            <input type="text" id="singleTopicName" placeholder="Topic name (e.g. Photosynthesis)" class="w-full p-2 sm:p-3 border border-gray-200 rounded-lg sm:rounded-xl focus:border-green-400 focus:ring-1 focus:ring-green-300 text-sm">
+                            <div class="space-y-1">
+                                <p class="text-xs text-gray-500">Quick topic select</p>
+                                <div id="topicChipList" class="flex flex-wrap gap-1 sm:gap-2"></div>
+                            </div>
+                            <textarea id="singleQuestionText" placeholder="Write the question..." class="w-full p-2 sm:p-3 border border-gray-200 rounded-lg sm:rounded-xl focus:border-green-400 focus:ring-1 focus:ring-green-300 text-sm resize-none" rows="3"></textarea>
+                            <div class="grid grid-cols-2 gap-1 sm:gap-3">
+                                <input type="text" id="optA" placeholder="Option A" class="p-2 sm:p-3 border border-gray-200 rounded-lg sm:rounded-xl text-sm">
+                                <input type="text" id="optB" placeholder="Option B" class="p-2 sm:p-3 border border-gray-200 rounded-lg sm:rounded-xl text-sm">
+                                <input type="text" id="optC" placeholder="Option C" class="p-2 sm:p-3 border border-gray-200 rounded-lg sm:rounded-xl text-sm">
+                                <input type="text" id="optD" placeholder="Option D" class="p-2 sm:p-3 border border-gray-200 rounded-lg sm:rounded-xl text-sm">
+                            </div>
+                            <div class="flex flex-col xs:flex-row gap-2 sm:gap-4 items-start xs:items-center">
+                                <label class="font-medium text-xs sm:text-sm text-gray-700 whitespace-nowrap">Correct:</label>
+                                <div class="flex gap-2 sm:gap-4 flex-wrap">
+                                    <label class="inline-flex items-center gap-1 text-xs sm:text-sm"><input type="radio" name="correctAns" value="A"> A</label>
+                                    <label class="inline-flex items-center gap-1 text-xs sm:text-sm"><input type="radio" name="correctAns" value="B"> B</label>
+                                    <label class="inline-flex items-center gap-1 text-xs sm:text-sm"><input type="radio" name="correctAns" value="C"> C</label>
+                                    <label class="inline-flex items-center gap-1 text-xs sm:text-sm"><input type="radio" name="correctAns" value="D"> D</label>
+                                </div>
+                            </div>
+                            <button id="addSingleBtn" class="bg-green-700 hover:bg-green-800 text-white font-semibold py-2 sm:py-2.5 px-4 sm:px-6 rounded-lg sm:rounded-xl transition-smooth w-full text-sm sm:text-base"><span class="material-symbols-outlined mi">check_circle</span>Add</button>
+                            <div id="singleFeedback" class="text-xs sm:text-sm text-green-700 bg-green-50 p-2 rounded-lg hidden"></div>
+                        </div>
+                    </div>
+
+                    <!-- Batch Upload Card -->
+                    <div class="bg-white rounded-xl sm:rounded-2xl card-shadow p-4 sm:p-6">
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-800 border-l-4 border-green-600 pl-2 sm:pl-3 mb-3 sm:mb-4 truncate"><span class="material-symbols-outlined mi">upload_file</span>Batch Upload</h3>
+                        <p class="text-xs text-gray-500 mb-2">Format: Course | Topic | Question | Opt A | Opt B | Opt C | Opt D | Answer</p>
+                        <textarea id="batchData" rows="4" placeholder="Example:&#10;Biology 101 | Photosynthesis | What is the main product? | Glucose | Oxygen | Water | CO2 | A" class="w-full p-2 sm:p-3 border border-gray-200 rounded-lg sm:rounded-xl resize-y text-xs sm:text-sm"></textarea>
+                        <div id="dragDropZone" class="mt-2 sm:mt-3 border-2 border-dashed border-gray-300 rounded-lg sm:rounded-xl p-3 sm:p-4 text-center cursor-pointer bg-gray-50 hover:bg-green-50 transition">
+                            <svg class="mx-auto h-6 w-6 sm:h-8 sm:w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                            <p class="text-xs sm:text-sm text-gray-500 mt-1">Drag & drop .txt file or click to paste</p>
+                            <input type="file" id="batchFileInput" class="hidden" accept=".txt,.csv">
+                        </div>
+                        <button id="batchUploadBtn" class="mt-3 sm:mt-4 w-full bg-green-100 text-green-800 hover:bg-green-200 font-medium py-2 sm:py-2.5 rounded-lg sm:rounded-xl transition-smooth text-sm sm:text-base"><span class="material-symbols-outlined mi">rocket_launch</span>Upload</button>
+                        <div id="batchFeedback" class="mt-2 text-xs sm:text-sm text-green-700 bg-green-50 p-2 rounded-lg hidden"></div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN: Question List Management -->
+                <div class="bg-white rounded-xl sm:rounded-2xl card-shadow p-4 sm:p-6 flex flex-col h-fit">
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 border-l-4 border-green-600 pl-2 sm:pl-3 mb-2 sm:mb-3 truncate"><span class="material-symbols-outlined mi">quiz</span>Question Bank</h3>
+                    <div class="mb-2 sm:mb-3 space-y-1 sm:space-y-2">
+                        <div>
+                            <label for="staffCourseFilter" class="text-xs text-gray-600">Filter by course</label>
+                            <select id="staffCourseFilter" class="w-full mt-1 p-1.5 sm:p-2 border border-gray-200 rounded-lg sm:rounded-xl bg-white text-xs sm:text-sm">
+                                <option value="">All courses</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="staffTopicFilter" class="text-xs text-gray-600">Filter by topic</label>
+                            <select id="staffTopicFilter" class="w-full mt-1 p-1.5 sm:p-2 border border-gray-200 rounded-lg sm:rounded-xl bg-white text-xs sm:text-sm">
+                                <option value="">All topics</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p id="questionCountInfo" class="text-xs sm:text-sm text-gray-500 mb-2 sm:mb-3">0 questions available</p>
+                    <div class="space-y-2 mb-3">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-semibold text-gray-700">Search & Filter</label>
+                            <button id="clearFiltersBtn" class="text-xs text-blue-600 hover:text-blue-800 underline hidden">Clear all</button>
+                        </div>
+                        <input type="text" id="questionSearchInput" placeholder="Search by question, answer, topic..." class="w-full p-1.5 sm:p-2 border border-gray-200 rounded-lg sm:rounded-xl bg-white text-xs sm:text-sm focus:border-blue-400 focus:ring-1 focus:ring-blue-300">
+                    </div>
+                    <div id="questionListContainer" class="max-h-[300px] sm:max-h-[480px] overflow-y-auto custom-scroll space-y-2 sm:space-y-3 pr-1">
+                        <!-- dynamic cards will appear here -->
+                        <div class="text-center text-gray-400 py-6 sm:py-8 text-xs sm:text-sm">No questions yet. Add some!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STUDENT QUIZ INTERFACE (hidden initially) -->
+        <div id="studentQuizContainer" class="hidden">
+            <div class="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl card-shadow p-2 sm:p-3 md:p-4 flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-2 sm:gap-3 mb-4 sm:mb-6 md:mb-8">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg sm:text-2xl font-bold text-green-800 truncate"><span class="material-symbols-outlined mi">school</span>Quiz</span>
+                </div>
+                <div class="flex gap-1 sm:gap-3 flex-wrap w-full sm:w-auto">
+                    <button id="studentToQuizDashboardBtn" class="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-green-700 bg-green-50 rounded-lg sm:rounded-xl hover:bg-green-100 transition whitespace-nowrap"><span class="material-symbols-outlined mi">dashboard</span><span class="hidden sm:inline">Dashboard</span></button>
+                    <button id="studentLogoutBtn" class="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-gray-200 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-300 transition whitespace-nowrap"><span class="material-symbols-outlined mi">logout</span><span class="hidden sm:inline">Logout</span></button>
+                </div>
+            </div>
+            <div id="activeQuizArea" class="bg-white rounded-xl sm:rounded-2xl card-shadow p-3 sm:p-4 md:p-6 lg:p-8 transition-all">
+                <!-- dynamic quiz view -->
+            </div>
+        </div>
+
+        <!-- RESULTS PAGE (dynamic inside student container) -->
+
+        <!-- STUDENT DASHBOARD (hidden initially) -->
+        <div id="studentDashboard" class="hidden">
+            <div class="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl card-shadow p-2 sm:p-3 md:p-4 flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-2 sm:gap-3 mb-4 sm:mb-6 md:mb-8">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg sm:text-2xl font-bold text-green-800 truncate"><span class="material-symbols-outlined mi">dashboard</span>My Dashboard</span>
+                </div>
+                <div class="flex gap-1 sm:gap-3 flex-wrap w-full sm:w-auto">
+                    <button id="studentDashboardToQuizBtn" class="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-green-700 bg-green-50 rounded-lg sm:rounded-xl hover:bg-green-100 transition whitespace-nowrap"><span class="material-symbols-outlined mi">target</span><span class="hidden sm:inline">Take Quiz</span></button>
+                    <button id="studentDashboardLogoutBtn" class="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-gray-200 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-300 transition whitespace-nowrap"><span class="material-symbols-outlined mi">logout</span><span class="hidden sm:inline">Logout</span></button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6">
+                <!-- Overall Stats -->
+                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl sm:rounded-2xl card-shadow p-4 sm:p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-semibold text-gray-600">Total Attempts</span>
+                        <span class="material-symbols-outlined mi text-green-700">repeat</span>
+                    </div>
+                    <p class="text-3xl font-bold text-green-800" id="dashboardTotalAttempts">0</p>
+                </div>
+
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl sm:rounded-2xl card-shadow p-4 sm:p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-semibold text-gray-600">Best Score</span>
+                        <span class="material-symbols-outlined mi text-blue-700">emoji_events</span>
+                    </div>
+                    <p class="text-3xl font-bold text-blue-800" id="dashboardBestScore">0%</p>
+                </div>
+
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl sm:rounded-2xl card-shadow p-4 sm:p-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-semibold text-gray-600">Average Score</span>
+                        <span class="material-symbols-outlined mi text-purple-700">trending_up</span>
+                    </div>
+                    <p class="text-3xl font-bold text-purple-800" id="dashboardAvgScore">0%</p>
+                </div>
+            </div>
+
+            <!-- Quiz History -->
+            <div class="bg-white rounded-xl sm:rounded-2xl card-shadow p-4 sm:p-6">
+                <h3 class="text-lg sm:text-xl font-bold text-gray-800 border-l-4 border-green-600 pl-3 mb-4"><span class="material-symbols-outlined mi">history</span>Quiz History</h3>
+                <div id="studentQuizHistory" class="space-y-3 max-h-96 overflow-y-auto">
+                    <div class="text-center py-8 text-gray-500"><span class="material-symbols-outlined mi">info</span>No quiz attempts yet. Take a quiz to get started!</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN ANALYTICS DASHBOARD (hidden initially) -->
+        <div id="adminDashboard" class="hidden">
+            <div class="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl card-shadow p-2 sm:p-3 md:p-4 flex flex-col sm:flex-row flex-wrap justify-between items-start sm:items-center gap-2 sm:gap-3 mb-4 sm:mb-6 md:mb-8">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg sm:text-2xl font-bold text-purple-800 truncate"><span class="material-symbols-outlined mi">analytics</span>Analytics</span>
+                    <span class="text-xs sm:text-sm bg-purple-100 text-purple-700 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full whitespace-nowrap">Dashboard</span>
+                </div>
+                <div class="flex gap-1 sm:gap-3 flex-wrap w-full sm:w-auto">
+                    <button id="adminBackBtn" class="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-purple-700 bg-purple-50 rounded-lg sm:rounded-xl hover:bg-purple-100 transition whitespace-nowrap"><span class="material-symbols-outlined mi">arrow_back</span><span class="hidden xs:inline">Back</span></button>
+                    <button id="adminLogoutBtn" class="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-gray-200 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-300 transition whitespace-nowrap"><span class="material-symbols-outlined mi">logout</span><span class="hidden xs:inline">Logout</span></button>
+                </div>
+            </div>
+
+            <!-- Analytics Tabs -->
+            <div class="flex gap-1 sm:gap-2 mb-4 sm:mb-6 flex-wrap overflow-x-auto pb-2">
+                <button class="analytics-tab active px-2 sm:px-4 py-1.5 sm:py-2 bg-purple-700 text-white rounded-lg sm:rounded-xl transition-smooth text-xs sm:text-sm whitespace-nowrap" data-tab="overview"><span class="material-symbols-outlined mi">dashboard</span><span class="hidden xs:inline">Overview</span></button>
+                <button class="analytics-tab px-2 sm:px-4 py-1.5 sm:py-2 bg-gray-100 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-200 transition-smooth text-xs sm:text-sm whitespace-nowrap" data-tab="courses"><span class="material-symbols-outlined mi">school</span><span class="hidden xs:inline">Courses</span></button>
+                <button class="analytics-tab px-2 sm:px-4 py-1.5 sm:py-2 bg-gray-100 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-200 transition-smooth text-xs sm:text-sm whitespace-nowrap" data-tab="students"><span class="material-symbols-outlined mi">people</span><span class="hidden xs:inline">Students</span></button>
+                <button class="analytics-tab px-2 sm:px-4 py-1.5 sm:py-2 bg-gray-100 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-200 transition-smooth text-xs sm:text-sm whitespace-nowrap" data-tab="sessions"><span class="material-symbols-outlined mi">history</span><span class="hidden xs:inline">Sessions</span></button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="analyticsOverviewTab" class="analytics-tab-content">
+                <div class="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8">
+                    <div class="bg-white rounded-lg sm:rounded-xl card-shadow p-3 sm:p-6">
+                        <p class="text-gray-600 text-xs sm:text-sm mb-1 sm:mb-2 truncate"><span class="material-symbols-outlined mi">quiz</span>Total Sessions</p>
+                        <p class="text-2xl sm:text-4xl font-bold text-purple-700" id="statTotalSessions">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg sm:rounded-xl card-shadow p-3 sm:p-6">
+                        <p class="text-gray-600 text-xs sm:text-sm mb-1 sm:mb-2 truncate"><span class="material-symbols-outlined mi">person</span>Unique Students</p>
+                        <p class="text-2xl sm:text-4xl font-bold text-blue-700" id="statUniqueStudents">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg sm:rounded-xl card-shadow p-3 sm:p-6">
+                        <p class="text-gray-600 text-xs sm:text-sm mb-1 sm:mb-2 truncate"><span class="material-symbols-outlined mi">category</span>Total Courses</p>
+                        <p class="text-2xl sm:text-4xl font-bold text-green-700" id="statTotalCourses">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg sm:rounded-xl card-shadow p-3 sm:p-6">
+                        <p class="text-gray-600 text-xs sm:text-sm mb-1 sm:mb-2 truncate"><span class="material-symbols-outlined mi">trending_up</span>Avg Score</p>
+                        <p class="text-2xl sm:text-4xl font-bold text-orange-700" id="statAvgScore">0%</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Courses Tab -->
+            <div id="analyticsCourses" class="analytics-tab-content hidden">
+                <div class="bg-white rounded-lg sm:rounded-2xl card-shadow p-3 sm:p-6">
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 border-l-4 border-purple-600 pl-2 sm:pl-3 truncate"><span class="material-symbols-outlined mi">school</span>Course Performance</h3>
+                    <div id="courseStatsTable" class="overflow-x-auto">
+                        <table class="w-full text-xs sm:text-sm">
+                            <thead class="bg-gray-50 border-b-2 border-gray-200">
+                                <tr>
+                                    <th class="px-2 sm:px-4 py-2 text-left font-semibold text-gray-700">Course</th>
+                                    <th class="px-2 sm:px-4 py-2 text-center font-semibold text-gray-700">Attempts</th>
+                                    <th class="px-2 sm:px-4 py-2 text-center font-semibold text-gray-700" data-label="Avg">Avg</th>
+                                    <th class="px-2 sm:px-4 py-2 text-center font-semibold text-gray-700" data-label="Max">Max</th>
+                                    <th class="px-2 sm:px-4 py-2 text-center font-semibold text-gray-700">Students</th>
+                                </tr>
+                            </thead>
+                            <tbody id="courseTableBody">
+                                <tr><td colspan="5" class="text-center py-4 text-gray-400 text-xs sm:text-sm">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Students Tab -->
+            <div id="analyticsStudents" class="analytics-tab-content hidden">
+                <div class="bg-white rounded-lg sm:rounded-2xl card-shadow p-3 sm:p-6">
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 border-l-4 border-purple-600 pl-2 sm:pl-3 truncate"><span class="material-symbols-outlined mi">people</span>Student Progress</h3>
+                    <div id="studentProgressTable" class="overflow-x-auto">
+                        <table class="w-full text-xs sm:text-sm">
+                            <thead class="bg-gray-50 border-b-2 border-gray-200">
+                                <tr>
+                                    <th class="px-2 sm:px-4 py-2 text-left font-semibold text-gray-700">Email</th>
+                                    <th class="px-2 sm:px-4 py-2 text-left font-semibold text-gray-700">Course</th>
+                                    <th class="px-2 sm:px-4 py-2 text-center font-semibold text-gray-700">Attempts</th>
+                                    <th class="px-2 sm:px-4 py-2 text-center font-semibold text-gray-700">Best</th>
+                                    <th class="px-2 sm:px-4 py-2 text-center font-semibold text-gray-700">Avg</th>
+                                    <th class="px-2 sm:px-4 py-2 text-center font-semibold text-gray-700">Last</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentTableBody">
+                                <tr><td colspan="6" class="text-center py-4 text-gray-400 text-xs sm:text-sm">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sessions Tab -->
+            <div id="analyticsSessions" class="analytics-tab-content hidden">
+                <div class="bg-white rounded-lg sm:rounded-2xl card-shadow p-3 sm:p-6">
+                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 border-l-4 border-purple-600 pl-2 sm:pl-3 truncate"><span class="material-symbols-outlined mi">history</span>Recent Sessions</h3>
+                    <div id="sessionsTable" class="overflow-x-auto">
+                        <table class="w-full text-xs sm:text-sm">
+                            <thead class="bg-gray-50 border-b-2 border-gray-200">
+                                <tr>
+                                    <th class="px-2 sm:px-4 py-2 text-left font-semibold text-gray-700">Email</th>
+                                    <th class="px-2 sm:px-4 py-2 text-left font-semibold text-gray-700">Course</th>
+                                    <th class="px-2 sm:px-4 py-2 text-center font-semibold text-gray-700">Score</th>
+                                    <th class="px-2 sm:px-4 py-2 text-center font-semibold text-gray-700">Result</th>
+                                    <th class="px-2 sm:px-4 py-2 text-center font-semibold text-gray-700">Time</th>
+                                    <th class="px-2 sm:px-4 py-2 text-center font-semibold text-gray-700">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sessionsTableBody">
+                                <tr><td colspan="6" class="text-center py-4 text-gray-400 text-xs sm:text-sm">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/lib.js"></script>
+    <!-- Toast notification container -->
+    <div id="toastContainer"></div>
+    <script>
+        // Check for email confirmation callback on page load
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const emailConfirmed = urlParams.get('emailConfirmed');
+            const confirmError = urlParams.get('confirmError');
+            
+            if (emailConfirmed === 'true') {
+                // Store confirmation message to show after app loads
+                sessionStorage.setItem('showEmailConfirmationMessage', 'true');
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            
+            if (confirmError) {
+                // Store error message to show after app loads
+                sessionStorage.setItem('emailConfirmationError', confirmError);
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        })();
+    </script>
+    <script src="js/app.js"></script>
+</body>
+</html>
